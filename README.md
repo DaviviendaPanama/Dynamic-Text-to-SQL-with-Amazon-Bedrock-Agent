@@ -10,6 +10,8 @@ Elevate your data analysis with an end-to-end agentic Text-to-SQL solution, buil
 
 This solution goes beyond basic Text-to-SQL, offering a robust, self-adapting system for complex enterprise environments.
 
+Visit AWS Machine Learning Blog - [Dynamic text-to-SQL for enterprise workloads with Amazon Bedrock Agents](https://aws.amazon.com/blogs/machine-learning/dynamic-text-to-sql-for-enterprise-workloads-with-amazon-bedrock-agents/) to learn more about this solution.
+
 ## Sample Database Overview
 
 This example demonstrates a fraud detection database schema commonly used in financial institutions. The schema represents core tables needed for transaction monitoring and fraud investigation.
