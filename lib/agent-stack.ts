@@ -67,9 +67,7 @@ export class AgentStack extends Stack {
 
       // Sample tables list
       const glueTables = [
-          'accounts', 'bank_branches', 'card_transactions', 'cards', 'customers',
-          'devices', 'fraud_alerts', 'locations', 'merchants', 'rules_engine',
-          'suspicious_patterns', 'transaction_history', 'transactions'
+          'productos'
       ];
 
       role.addToPolicy(
@@ -109,10 +107,10 @@ export class AgentStack extends Stack {
           resources: [
             `arn:aws:glue:${stack.region}:${stack.account}:catalog`,
             `arn:aws:glue:${stack.region}:${stack.account}:database/default`,
-            `arn:aws:glue:${stack.region}:${stack.account}:database/fraud_data`,
-            `arn:aws:glue:${stack.region}:${stack.account}:table/default/fraud_data`,
+            `arn:aws:glue:${stack.region}:${stack.account}:database/davihub_financial_data`,
+            `arn:aws:glue:${stack.region}:${stack.account}:table/default/davihub_financial_data`,
             ...glueTables.map(table =>
-              `arn:aws:glue:${stack.region}:${stack.account}:table/fraud_data/${table}`
+              `arn:aws:glue:${stack.region}:${stack.account}:table/davihub_financial_data/${table}`
             )
           ],
         }),

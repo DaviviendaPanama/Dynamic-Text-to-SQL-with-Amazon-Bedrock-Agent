@@ -17,7 +17,7 @@ export class AthenaStack extends Stack {
 
     // Create S3 buckets for Athena
     this.ATHENA_DATA_BUCKET = new s3.Bucket(this, "AthenaDataBucket", {
-      bucketName: `fraud-data-store-${this.account}-${this.region}`,
+      bucketName: `davihub-financial-data-store-${this.account}-${this.region}`,
       enforceSSL: true,
       versioned: true,
       encryption: s3.BucketEncryption.S3_MANAGED,
@@ -28,7 +28,7 @@ export class AthenaStack extends Stack {
     });
 
     this.ATHENA_OUTPUT_BUCKET = new s3.Bucket(this, "AthenaOutputBucket", {
-      bucketName: `fraud-athena-output-${this.account}-${this.region}`,
+      bucketName: `davihub-financial-output-${this.account}-${this.region}`,
       enforceSSL: true,
       versioned: true,
       encryption: s3.BucketEncryption.S3_MANAGED,
@@ -55,7 +55,7 @@ export class AthenaStack extends Stack {
     this.ATHENA_DATABASE = new glue.CfnDatabase(this, "AthenaDatabase", {
       catalogId: this.account,
       databaseInput: {
-        name: "fraud_data",
+        name: "davihub_financial_data",
       },
     });
 
