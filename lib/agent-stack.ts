@@ -15,6 +15,7 @@ import * as iam from "aws-cdk-lib/aws-iam";
 import { Runtime, LayerVersion, Code } from "aws-cdk-lib/aws-lambda";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as sqs from "aws-cdk-lib/aws-sqs";
+import * as apigateway from "aws-cdk-lib/aws-apigateway";
 
 interface AgentsStackProps extends StackProps {
   ATHENA_OUTPUT_BUCKET: s3.Bucket;
@@ -129,6 +130,42 @@ export class AgentStack extends Stack {
             ...glueTables.map(table => `${athenaDataBucket.bucketArn}/${table}/${table}.csv`),
             athenaOutputBucket.bucketArn,
             `${athenaOutputBucket.bucketArn}/query-results/*`,
+          ],
+        }),
+      );
+
+      return role;
+    }
+
+    // Define a function to create Bedrock Agent Lambda role
+    function createBedrockAgentLambdaRole(
+      parentScope: Construct,
+      roleId: string,
+      agentId: string,
+    ): iam.Role {
+      const stack = Stack.of(parentScope);
+      const role = new iam.Role(parentScope, roleId, {
+        assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
+      });
+
+      role.addToPolicy(
+        new iam.PolicyStatement({
+          actions: [
+            "logs:CreateLogGroup",
+            "logs:CreateLogStream",
+            "logs:PutLogEvents",
+          ],
+          resources: [
+            `arn:aws:logs:${stack.region}:${stack.account}:log-group:*`
+          ],
+        }),
+      );
+
+      role.addToPolicy(
+        new iam.PolicyStatement({
+          actions: ["bedrock-agent-runtime:InvokeAgent"],
+          resources: [
+            `arn:aws:bedrock:${stack.region}:${stack.account}:agent/${agentId}`
           ],
         }),
       );
@@ -299,5 +336,87 @@ export class AgentStack extends Stack {
       )
     })
     dynamicAgent.addActionGroup(athenaSchemaReaderActionGroup);
+
+    // Create IAM role for Bedrock Agent Exposer Lambda
+    const bedrockAgentExposerRole = createBedrockAgentLambdaRole(
+      this,
+      "BedrockAgentExposerRole",
+      dynamicAgent.agentId,
+    );
+
+    // Create Bedrock Agent Exposer Lambda
+    const bedrockAgentExposerLambda = createLambdaFunction(
+      this,
+      "BedrockAgentExposerLambda",
+      {
+        entry: path.join(
+          "src",
+          "exposer_lambda_endpoint",
+        ),
+        role: bedrockAgentExposerRole,
+        layers: [
+          lambdaPowertoolsLayer,
+          lambdaPydanticLayer,
+          athenaCommonLayer,
+        ],
+        environment: {
+          BEDROCK_AGENT_ID: dynamicAgent.agentId,
+          BEDROCK_AGENT_ALIAS_ID: "latest",
+        },
+      },
+    );
+
+    // Create API Gateway
+    const api = new apigateway.RestApi(this, "BedrockAgentApi", {
+      restApiName: "Bedrock Agent Exposer API",
+      description: "API Gateway to expose Bedrock Agent functionality",
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowHeaders: ['Content-Type', 'X-Amz-Date', 'Authorization', 'X-Api-Key'],
+      },
+    });
+
+    // Create Lambda integration
+    const lambdaIntegration = new apigateway.LambdaIntegration(bedrockAgentExposerLambda, {
+      requestTemplates: { "application/json": '{ "statusCode": "200" }' },
+    });
+
+    // Add POST method to the API Gateway
+    const chatResource = api.root.addResource("chat");
+    chatResource.addMethod("POST", lambdaIntegration, {
+      methodResponses: [
+        {
+          statusCode: "200",
+          responseParameters: {
+            "method.response.header.Access-Control-Allow-Origin": true,
+          },
+        },
+        {
+          statusCode: "400",
+          responseParameters: {
+            "method.response.header.Access-Control-Allow-Origin": true,
+          },
+        },
+        {
+          statusCode: "500",
+          responseParameters: {
+            "method.response.header.Access-Control-Allow-Origin": true,
+          },
+        },
+      ],
+    });
+
+    // Output the API Gateway URL
+    new cdk.CfnOutput(this, "ApiGatewayUrl", {
+      value: api.url,
+      description: "API Gateway URL for Bedrock Agent",
+    });
+
+    // Output the Bedrock Agent ID
+    new cdk.CfnOutput(this, "BedrockAgentId", {
+      value: dynamicAgent.agentId,
+      description: "Bedrock Agent ID",
+    });
   }
 }

@@ -1,0 +1,106 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Bedrock Agent Exposer API",
+    "version": "1.0.0",
+    "description": "API endpoint to expose Bedrock Agent functionality via HTTP POST requests"
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com",
+      "description": "Production server"
+    }
+  ],
+  "paths": {
+    "/chat": {
+      "post": {
+        "summary": "Send message to Bedrock Agent",
+        "description": "Send a message to the Bedrock Agent and get a response",
+        "operationId": "sendMessage",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "description": "The message to send to the Bedrock Agent"
+                  }
+                },
+                "required": ["message"]
+              },
+              "examples": {
+                "example1": {
+                  "summary": "Sample message",
+                  "value": {
+                    "message": "Hello, can you help me with a SQL query?"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response from Bedrock Agent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "reply": {
+                      "type": "string",
+                      "description": "The response from the Bedrock Agent"
+                    }
+                  }
+                },
+                "examples": {
+                  "example1": {
+                    "summary": "Sample response",
+                    "value": {
+                      "reply": "Hello! I'd be happy to help you with SQL queries. What would you like to know?"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing required field",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
