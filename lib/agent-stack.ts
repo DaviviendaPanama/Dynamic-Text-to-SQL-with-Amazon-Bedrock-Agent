@@ -177,7 +177,7 @@ export class AgentStack extends Stack {
     // APAC - bedrock.CrossRegionInferenceProfileRegion.APAC
     const anthropicClaudeRegionInferenceProfile = bedrock.CrossRegionInferenceProfile.fromConfig({
       geoRegion: bedrock.CrossRegionInferenceProfileRegion.US,
-      model: bedrock.BedrockFoundationModel.ANTHROPIC_CLAUDE_3_5_SONNET_V2_0
+      model: bedrock.BedrockFoundationModel.ANTHROPIC_CLAUDE_3_5_SONNET_V1_0
     })
 
     // Create Dynamic Bedrock Agent with Dynamic Schema Discovery
