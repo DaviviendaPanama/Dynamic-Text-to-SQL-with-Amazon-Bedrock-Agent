@@ -34,6 +34,18 @@ NagSuppressions.addStackSuppressions(agentStack, [
     id: 'AwsSolutions-IAM5',
     reason: 'Required wildcards are scoped to specific resources and service integrations',
   },
+  {
+    id: 'AwsSolutions-APIG3',
+    reason: 'AWS WAF is optional for development/testing environments. Consider adding for production.',
+  },
+  {
+    id: 'AwsSolutions-APIG4',
+    reason: 'Using API Key for authorization instead of Cognito for simplicity. Can be enhanced with Cognito in production.',
+  },
+  {
+    id: 'AwsSolutions-COG4',
+    reason: 'Using API Key for authorization instead of Cognito for simplicity. Can be enhanced with Cognito in production.',
+  },
 ]);
 
 NagSuppressions.addStackSuppressions(athenaStack, [

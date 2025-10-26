@@ -16,6 +16,7 @@ import { Runtime, LayerVersion, Code } from "aws-cdk-lib/aws-lambda";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as sqs from "aws-cdk-lib/aws-sqs";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
+import * as logs from "aws-cdk-lib/aws-logs";
 
 interface AgentsStackProps extends StackProps {
   ATHENA_OUTPUT_BUCKET: s3.Bucket;
@@ -366,10 +367,24 @@ export class AgentStack extends Stack {
       },
     );
 
+    // Create CloudWatch Log Group for API Gateway
+    const apiLogGroup = new logs.LogGroup(this, "BedrockAgentApiLogGroup", {
+      logGroupName: `/aws/apigateway/BedrockAgentApi`,
+      retention: logs.RetentionDays.ONE_WEEK,
+    });
+
     // Create API Gateway
     const api = new apigateway.RestApi(this, "BedrockAgentApi", {
       restApiName: "Bedrock Agent Exposer API",
       description: "API Gateway to expose Bedrock Agent functionality",
+      deployOptions: {
+        stageName: "prod",
+        loggingLevel: apigateway.MethodLoggingLevel.ERROR,
+        accessLogDestination: new apigateway.LogGroupLogDestination(apiLogGroup),
+        accessLogFormat: apigateway.AccessLogFormat.jsonWithStandardFields(),
+        throttlingBurstLimit: 100,
+        throttlingRateLimit: 200,
+      },
       defaultCorsPreflightOptions: {
         allowOrigins: apigateway.Cors.ALL_ORIGINS,
         allowMethods: apigateway.Cors.ALL_METHODS,
@@ -377,19 +392,88 @@ export class AgentStack extends Stack {
       },
     });
 
+    // Create request validation model
+    const requestModel = api.addModel("RequestModel", {
+      modelName: "RequestModel",
+      contentType: "application/json",
+      schema: {
+        type: apigateway.JsonSchemaType.OBJECT,
+        properties: {
+          message: {
+            type: apigateway.JsonSchemaType.STRING,
+            description: "The message to send to the Bedrock Agent"
+          }
+        },
+        required: ["message"]
+      }
+    });
+
+    // Create API Key
+    const apiKey = api.addApiKey("BedrockAgentApiKey", {
+      apiKeyName: "BedrockAgentApiKey",
+    });
+
     // Create Lambda integration
     const lambdaIntegration = new apigateway.LambdaIntegration(bedrockAgentExposerLambda, {
       requestTemplates: { "application/json": '{ "statusCode": "200" }' },
+      integrationResponses: [
+        {
+          statusCode: "200",
+          responseParameters: {
+            "method.response.header.Access-Control-Allow-Origin": "'*'",
+            "method.response.header.Content-Type": "'application/json'",
+          },
+        },
+        {
+          statusCode: "400",
+          selectionPattern: "400",
+          responseParameters: {
+            "method.response.header.Access-Control-Allow-Origin": "'*'",
+          },
+        },
+        {
+          statusCode: "500",
+          selectionPattern: "500",
+          responseParameters: {
+            "method.response.header.Access-Control-Allow-Origin": "'*'",
+          },
+        },
+      ],
     });
+
+    // Create usage plan
+    const plan = api.addUsagePlan("BedrockAgentUsagePlan", {
+      name: "BedrockAgentUsagePlan",
+      apiStages: [
+        {
+          api: api,
+          stage: api.deploymentStage,
+        },
+      ],
+    });
+    plan.addApiKey(apiKey);
 
     // Add POST method to the API Gateway
     const chatResource = api.root.addResource("chat");
     chatResource.addMethod("POST", lambdaIntegration, {
+      apiKeyRequired: true,
+      requestValidator: new apigateway.RequestValidator(this, "RequestValidator", {
+        restApi: api,
+        validateRequestBody: true,
+        validateRequestParameters: false,
+      }),
+      requestModels: {
+        "application/json": requestModel,
+      },
       methodResponses: [
         {
           statusCode: "200",
           responseParameters: {
             "method.response.header.Access-Control-Allow-Origin": true,
+            "method.response.header.Content-Type": true,
+          },
+          responseModels: {
+            "application/json": apigateway.Model.EMPTY_MODEL,
           },
         },
         {
@@ -397,11 +481,17 @@ export class AgentStack extends Stack {
           responseParameters: {
             "method.response.header.Access-Control-Allow-Origin": true,
           },
+          responseModels: {
+            "application/json": apigateway.Model.ERROR_MODEL,
+          },
         },
         {
           statusCode: "500",
           responseParameters: {
             "method.response.header.Access-Control-Allow-Origin": true,
+          },
+          responseModels: {
+            "application/json": apigateway.Model.ERROR_MODEL,
           },
         },
       ],
@@ -417,6 +507,13 @@ export class AgentStack extends Stack {
     new cdk.CfnOutput(this, "BedrockAgentId", {
       value: dynamicAgent.agentId,
       description: "Bedrock Agent ID",
+    });
+
+    // Output the API Key
+    new cdk.CfnOutput(this, "ApiKey", {
+      value: apiKey.keyId,
+      description: "API Key ID for accessing the Bedrock Agent endpoint. Note: You'll need to retrieve the API key value from AWS Console.",
+      exportName: "BedrockAgentApiKey",
     });
   }
 }

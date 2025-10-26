@@ -52,6 +52,8 @@ Client -> API Gateway -> Lambda Function -> Bedrock Agent -> Response
 POST https://your-api-gateway-url/chat
 ```
 
+**Note:** This endpoint requires an API Key in the request headers.
+
 ### Request Format
 ```json
 {
@@ -66,10 +68,20 @@ POST https://your-api-gateway-url/chat
 }
 ```
 
-### Example Request
+### Retrieving the API Key
+
+After deployment, retrieve your API key value from AWS Console:
+
+1. Go to AWS Console > API Gateway
+2. Navigate to API Keys section
+3. Find the key named "BedrockAgentApiKey"
+4. Click on the key to view its value
+
+### Example Request with API Key
 ```bash
 curl -X POST https://your-api-gateway-url/chat \
   -H "Content-Type: application/json" \
+  -H "x-api-key: YOUR_API_KEY_VALUE" \
   -d '{"message": "Hello, can you help me with a SQL query?"}'
 ```
 
@@ -85,7 +97,7 @@ curl -X POST https://your-api-gateway-url/chat \
 Use the provided test script:
 
 ```bash
-python test-exposer-endpoint.py https://your-api-gateway-url
+python test-exposer-endpoint.py https://your-api-gateway-url your-api-key-value
 ```
 
 ## IAM Permissions
@@ -113,9 +125,11 @@ The API Gateway is configured with CORS to allow requests from any origin with s
 
 ## Security Considerations
 
-- The API Gateway is public by default
-- Consider adding authentication (API keys, Cognito, etc.) for production use
+- API Key authentication is required to access the endpoint
+- Consider adding AWS WAF for additional protection in production
+- Consider using Cognito User Pools for more sophisticated authentication/authorization
 - The Lambda function only has permissions to invoke the specific Bedrock Agent
+- Request validation is enabled to ensure proper request format
 
 ## Troubleshooting
 
@@ -132,3 +146,4 @@ For production use, consider:
 - Adding request/response logging
 - Setting up monitoring and alerting
 - Implementing input validation and sanitization
+

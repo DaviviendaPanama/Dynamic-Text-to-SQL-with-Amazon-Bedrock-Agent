@@ -24,12 +24,25 @@ def test_endpoint(api_url):
     print(f"Testing endpoint: {api_url}")
     print(f"Test message: {json.dumps(test_message, indent=2)}")
     
+    # Check if API key is provided
+    if len(sys.argv) == 3:
+        api_key = sys.argv[2]
+    else:
+        print("⚠️  Warning: No API key provided. The request may fail.")
+        print("Usage: python test-exposer-endpoint.py <API_GATEWAY_URL> <API_KEY>")
+        api_key = None
+    
     try:
+        # Prepare headers
+        headers = {'Content-Type': 'application/json'}
+        if api_key:
+            headers['x-api-key'] = api_key
+        
         # Make the POST request
         response = requests.post(
             api_url,
             json=test_message,
-            headers={'Content-Type': 'application/json'},
+            headers=headers,
             timeout=30
         )
         
@@ -51,9 +64,9 @@ def test_endpoint(api_url):
         print(f"Raw response: {response.text}")
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python test-exposer-endpoint.py <API_GATEWAY_URL>")
-        print("Example: python test-exposer-endpoint.py https://abc123.execute-api.us-east-1.amazonaws.com/prod")
+    if len(sys.argv) < 2:
+        print("Usage: python test-exposer-endpoint.py <API_GATEWAY_URL> [API_KEY]")
+        print("Example: python test-exposer-endpoint.py https://abc123.execute-api.us-east-1.amazonaws.com/prod your-api-key")
         sys.exit(1)
     
     api_url = sys.argv[1]
