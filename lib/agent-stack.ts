@@ -393,8 +393,8 @@ export class AgentStack extends Stack {
     });
 
     // Create request validation model
-    const requestModel = api.addModel("RequestModel", {
-      modelName: "RequestModel",
+    const requestModel = new apigateway.Model(this, "RequestModel", {
+      restApi: api,
       contentType: "application/json",
       schema: {
         type: apigateway.JsonSchemaType.OBJECT,

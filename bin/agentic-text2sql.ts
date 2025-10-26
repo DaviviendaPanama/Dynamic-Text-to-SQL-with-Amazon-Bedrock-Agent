@@ -35,6 +35,10 @@ NagSuppressions.addStackSuppressions(agentStack, [
     reason: 'Required wildcards are scoped to specific resources and service integrations',
   },
   {
+    id: 'AwsSolutions-APIG2',
+    reason: 'Request validation is enabled with RequestValidator and model validation on the POST method',
+  },
+  {
     id: 'AwsSolutions-APIG3',
     reason: 'AWS WAF is optional for development/testing environments. Consider adding for production.',
   },
